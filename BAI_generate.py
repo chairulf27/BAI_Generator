@@ -25,7 +25,7 @@ BULAN = {1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 5: 'Mei', 6: 'Juni
 # ANTARMUKA APLIKASI
 # ==========================================
 st.set_page_config(page_title="FAST BAI", layout="wide", page_icon="⚡")
-st.title("🔌 BAI NetGen (Network Generator)")
+st.title("📄 BAI NetGen (Network Generator)")
 st.markdown("Isi kelengkapan data di bawah ini untuk mengunduh dokumen Berita Acara Instalasi.")
 
 # FORMULIR INPUT
