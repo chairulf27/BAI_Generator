@@ -112,25 +112,21 @@ if tipe_bai == "Individu (1 Lokasi)":
                 st.error(f"❌ Error: {e}. Pastikan file 'template_bai.docx' tersedia.")
 
 # ==========================================
-# JALUR 2: MODE TERLAMPIR (MASSAL)
+# JALUR 2: MODE TERLAMPIR (MASSAL) - RENCANA B
 # ==========================================
 elif tipe_bai == "Terlampir (Banyak Lokasi / Massal)":
     st.subheader("📑 Form BAI Massal (Dengan Lampiran)")
     
-    # Header Dokumen Utama
     col_a, col_b = st.columns(2)
     with col_a:
-        nama_instansi = st.text_input("Nama Instansi Induk", placeholder="Contoh: Dinas Kominfo Kab. XYZ")
-        jenis_layanan = st.text_input("Jenis Layanan (Header)")
+        nama_instansi = st.text_input("Nama Pelanggan (Instansi Induk)", placeholder="Contoh: PT. PLN (PERSERO)")
     with col_b:
         tgl_massal = st.date_input("Pilih Tanggal Instalasi / Generate", key="tgl_massal")
 
-    st.markdown("**Paste Data dari Excel ke Tabel di Bawah Ini (Klik sel pertama lalu Ctrl+V):**")
+    st.markdown("**Paste Data dari Excel ke Tabel di Bawah Ini:**")
     
-    # Menyiapkan tabel kosong untuk diisi
-    df_kosong = pd.DataFrame(columns=["Nomor PA", "Alamat Lokasi", "Nama Perangkat", "SN Perangkat"])
-    
-    # Tabel interaktif (Bisa tambah baris / copy-paste dari Excel)
+    # Sesuaikan dengan 5 kolom input (Nomor di-generate otomatis)
+    df_kosong = pd.DataFrame(columns=["ID PA", "Layanan", "SID", "SN Perangkat", "Alamat / Tanggal"])
     tabel_input = st.data_editor(df_kosong, num_rows="dynamic", use_container_width=True)
 
     btn_generate_massal = st.button("🚀 Generate BAI Terlampir (Word)", use_container_width=True, type="primary")
@@ -140,45 +136,45 @@ elif tipe_bai == "Terlampir (Banyak Lokasi / Massal)":
             st.error("⚠️ Nama Instansi wajib diisi dan tabel tidak boleh kosong!")
         else:
             try:
-                # 1. Mengolah data tabel dari layar Streamlit menjadi format untuk Word
-                daftar_lokasi = []
-                for index, row in tabel_input.iterrows():
-                    # Memastikan tidak ada data kosong yang error (NaN)
-                    if pd.notna(row['Nomor PA']): 
-                        daftar_lokasi.append({
-                            'no': index + 1, # Otomatis bikin nomor urut
-                            'pa': str(row['Nomor PA']),
-                            'alamat': str(row['Alamat Lokasi']),
-                            'perangkat': str(row['Nama Perangkat']),
-                            'sn': str(row['SN Perangkat'])
-                        })
-
-                # 2. Menyiapkan data header
+                # 1. Menyiapkan data header utama (Halaman 1)
                 hari_ini = HARI[tgl_massal.weekday()]
                 bulan_teks = BULAN[tgl_massal.month]
                 
                 data_mapping_massal = {
                     'tanggal_generate': tgl_massal.strftime(f"%B %d, %Y"),
-                    'nama_layanan_header': jenis_layanan,
                     'nama_pelanggan': nama_instansi,
                     'hari_ini': hari_ini,
                     'tgl_terbilang': terbilang(tgl_massal.day),
                     'bulan_teks': bulan_teks,
                     'tahun_terbilang': terbilang(tgl_massal.year),
-                    'tanggal_ttd': f"{tgl_massal.day} {bulan_teks} {tgl_massal.year}",
-                    # Ini variabel penting untuk mengisi tabel di Word!
-                    'tabel_lampiran': daftar_lokasi 
+                    'tanggal_ttd': f"{tgl_massal.day} {bulan_teks} {tgl_massal.year}"
                 }
 
-                # 3. Merender menggunakan template KEDUA
+                # 2. Render halaman pertama
                 doc_massal = DocxTemplate("template_bai_lampiran.docx")
                 doc_massal.render(data_mapping_massal)
                 
+                # 3. RENCANA B: MENGGAMBAR TABEL DENGAN PYTHON
+                # Mengambil tabel paling terakhir di dalam dokumen Word (Tabel Lampiran)
+                tabel_target = doc_massal.docx.tables[-1] 
+                
+                for index, row in tabel_input.iterrows():
+                    if pd.notna(row['ID PA']): 
+                        # Menambahkan baris baru di tabel Word secara otomatis
+                        row_cells = tabel_target.add_row().cells
+                        row_cells[0].text = str(index + 1)
+                        row_cells[1].text = str(row['ID PA'])
+                        row_cells[2].text = str(row['Layanan'])
+                        row_cells[3].text = str(row['SID'])
+                        row_cells[4].text = str(row['SN Perangkat'])
+                        row_cells[5].text = str(row['Alamat / Tanggal'])
+                
+                # 4. Simpan dan Download
                 file_buffer_massal = io.BytesIO()
                 doc_massal.save(file_buffer_massal)
                 file_buffer_massal.seek(0)
                 
-                st.success(f"✅ Dokumen massal untuk {nama_instansi} berhasil digenerate dengan {len(daftar_lokasi)} lokasi!")
+                st.success(f"✅ Dokumen berhasil digenerate dengan {len(tabel_input)} lokasi!")
                 st.download_button(
                     label="📥 Download File BAI Terlampir (.docx)",
                     data=file_buffer_massal,
@@ -187,4 +183,4 @@ elif tipe_bai == "Terlampir (Banyak Lokasi / Massal)":
                     type="primary", use_container_width=True
                 )
             except Exception as e:
-                st.error(f"❌ Error: {e}. Pastikan file 'template_bai_lampiran.docx' tersedia dan tag tabel di Word sudah benar.")
+                st.error(f"❌ Error: {e}. Pastikan file Word benar dan tabel lampiran berada di posisi paling bawah.")
